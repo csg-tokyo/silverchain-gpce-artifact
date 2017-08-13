@@ -1,0 +1,6 @@
+START = graph ;
+graph -> ( "graph" | "digraph" ) id? "beginGraph" edge* "endGraph" ;
+edge -> nodeId (( "arrow" | "dash" ) nodeId )+ ;
+id : "String" ;
+nodeId : "String" ;
+EVAL = "/* EVAL */" ;

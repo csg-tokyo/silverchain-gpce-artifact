@@ -1,0 +1,7 @@
+# IDoc, DSL for itemized documents
+START = idoc ;
+idoc -> list* ;
+list -> "begin" item+ "end" ;
+item -> text list? ;
+text@java : "String" ;
+EVAL@java = "Eval.evaluate(context);" ;
