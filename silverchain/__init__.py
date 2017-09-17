@@ -2,12 +2,12 @@
 import os
 import sys
 from argparse import Action, ArgumentParser, FileType
-from . import encoders, hooks, translator
 
 __version__ = '0.1.0'
 
 
 def main():
+    from . import encoders, hooks, translator
     aparser = ArgumentParser(description='Fluent API generator')
     aparser.add_argument('l', type=str, choices=encoders.languages,
                          help='output language')
