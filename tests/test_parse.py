@@ -12,12 +12,9 @@ def test_parse_1():
     list -> "begin" item+ "end" ;
     item -> text list? ;
     text@java : "String" ;
-    text@cpp : "const char*" ;
     EVAL@java = "Eval.evaluate(context);" ;
-    EVAL@cpp = "Eval::evaluate(context);" ;
     """
     _parse(text, 'java')
-    _parse(text, 'cpp')
 
 
 def test_parse_2():
