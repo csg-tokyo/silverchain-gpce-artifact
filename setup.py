@@ -1,4 +1,4 @@
-# coding:utf-8
+# -*- coding: utf-8 -*-
 import silverchain
 from setuptools import setup, find_packages
 
@@ -20,7 +20,7 @@ setup(
         'Topic :: Software Development :: Code Generators'
     ],
     description='A fluent API generator',
-    entry_points={'console_scripts': 'silverchain = silverchain:main'},
+    entry_points={'console_scripts': 'silverchain = silverchain.cli:main'},
     install_requires=[
         'networkx==1.11',
         'pyparsing==2.2.0'
@@ -31,5 +31,5 @@ setup(
     packages=find_packages(),
     platforms='any',
     url='http://github.com/tomokinakamaru/silverchain',
-    version=silverchain.__version__
+    version='0.2.0'
 )

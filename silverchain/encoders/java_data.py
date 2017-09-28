@@ -92,6 +92,20 @@ class StateClass(object):
 
 
 class Method(object):
+    @staticmethod
+    def escape_reserved(name):
+        reserved = [
+            'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch',
+            'char', 'class', 'const', 'continue', 'default', 'do', 'double',
+            'else', 'enum', 'extends', 'false', 'final', 'finally', 'float',
+            'for', 'goto', 'if', 'implements', 'import', 'instanceof', 'int',
+            'interface', 'long', 'native', 'new', 'null', 'package', 'private',
+            'protected', 'public', 'return', 'short', 'static', 'strictfp',
+            'super', 'switch', 'synchronized', 'this', 'throw', 'throws',
+            'transient', 'true', 'try', 'void', 'volatile', 'while'
+        ]
+        return name + '_' if name in reserved else name
+
     def __init__(self, ret, name, arg=None, is_native_arg=False, repeat=False):
         self._ret = ''
         for sym, idx in ret:
@@ -99,7 +113,8 @@ class Method(object):
             self._ret += ntc + '.State' + str(idx) + '<'
         self._ret += 'T' + '>' * len(ret)
 
-        self._name = name[0].lower() + name[1:]
+        name = self.escape_reserved(name[0].lower() + name[1:])
+        self._name = name
 
         if arg is None:
             self._arg = ''
@@ -179,7 +194,7 @@ class Method(object):
 class StartingMethod(Method):
     def __str__(self):
         lines = super(StartingMethod, self).__str__().splitlines()
-        lines[0] = lines[0].replace('public', 'public static')
+        lines[0] = lines[0].replace('public ', 'public static ')
         lines[0] = lines[0].replace('<T>', '<Bottom$>')
         lines.insert(1, '    Context$ context = new Context$();')
         return '\n'.join(lines)

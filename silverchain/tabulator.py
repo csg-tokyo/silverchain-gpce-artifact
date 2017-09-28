@@ -2,18 +2,95 @@
 from collections import deque
 from itertools import combinations
 from networkx import DiGraph, descendants
-from .data import Table, Cell, State
+from .data import Token
+from .data import Table, Cell, State, Symbol
 
 
-def to_dfa(table):
-    for c in table.cells:
-        if len(c.dst) != 1:
-            raise Exception()
+def tabulate(grammar):
+    tokens = set()
+    transitions = {}
+    initials = {}
+    finals = {}
+    n_states = {}
 
+    eps = Token.term('')
+    for lhs, rhs in grammar.prods.items():
+        tokens.add(lhs)
+
+        n, stack = 0, []
+        for t in rhs:
+            if t.is_concat:
+                trs_r, ini_r, fin_r = stack.pop()
+                trs_l, ini_l, fin_l = stack.pop()
+                ini, fin = ini_l, fin_r
+                trs = trs_l | trs_r | {(fin_l, eps, ini_r)}
+                stack.append((trs, ini, fin))
+                tokens.add(eps)
+
+            elif t.is_alter:
+                trs_r, ini_r, fin_r = stack.pop()
+                trs_l, ini_l, fin_l = stack.pop()
+                ini, fin = n, n + 1
+                trs = {(ini, eps, ini_r), (fin_r, eps, fin),
+                       (ini, eps, ini_l), (fin_l, eps, fin)} | trs_l | trs_r
+                stack.append((trs, ini, fin))
+                n += 2
+                tokens.add(eps)
+
+            elif t.is_star:
+                trs, ini, fin = stack.pop()
+                trs |= {(n, eps, ini), (fin, eps, n)}
+                stack.append((trs, n, n))
+                n += 1
+                tokens.add(eps)
+
+            else:
+                ini, fin = n, n + 1
+                trs = {(n, t, fin)}
+                stack.append((trs, ini, fin))
+                n += 2
+                tokens.add(t)
+
+        transitions[lhs], initials[lhs], finals[lhs] = stack.pop()
+        n_states[lhs] = n
+
+    symbols = {}
+    for tok in tokens:
+        if tok.is_term:
+            symbols[tok] = Symbol.term(tok.text)
+        elif tok.is_nonterm:
+            typ = grammar.tdefs.get(tok)
+            typ = typ.text if typ else None
+            symbols[tok] = Symbol.nonterm(tok.text, typ)
+
+    states = {}
+    for tok, n in n_states.items():
+        for i in range(n):
+            sym = symbols[tok]
+            is_ini = (i == initials[tok])
+            is_fin = (i == finals[tok])
+            states[tok, i] = State(sym, i, is_ini, is_fin)
+
+    cells = set()
+    for tok, trs in transitions.items():
+        for tr in trs:
+            src = states[tok, tr[0]]
+            sym = symbols[tr[1]]
+            dst = (states[tok, tr[2]],)
+            c = Cell(src, sym, dst)
+            cells.add(c)
+
+    start = symbols[grammar.start]
+    eval = grammar.eval.text
+    table = Table(start, cells, eval)
+    return _to_dfa(table)
+
+
+def _to_dfa(table):
     eps_cls = _create_eps_closure_func(table)
     trs, queue, queued = set(), [], set()
-
     inis = {eps_cls((c.src,)) for c in table.cells if c.src.is_ini}
+
     queue.extend(inis)
     queued.update(inis)
     while queue:
@@ -50,17 +127,11 @@ def to_dfa(table):
         trs = {t for t in trs if t[0] != pair[1]}
         trs = {t[:2] + (pair[0] if t[2] == pair[1] else t[2],) for t in trs}
 
-    def _sorted_edge_iter(g, src):
-        edges = g.edges(src, data=True)
-        edges = ((attrs['label'], dsts) for _, dsts, attrs in edges)
-        for e in sorted(edges):
-            yield e[1]
-
     nums, states = {}, {}
     visited, deq = set(), deque()
     graph = DiGraph((srcs, dsts, {'label': sym}) for srcs, sym, dsts in trs)
     for srcs, _, _ in trs:
-        if any(s.is_ini for s in srcs):
+        if srcs in inis:
             states[srcs] = 0
             deq.append((srcs, _sorted_edge_iter(graph, srcs)))
             visited.add(srcs)
@@ -82,6 +153,9 @@ def to_dfa(table):
 
     cells = set()
     for t in trs:
+        if t[0] not in states:
+            continue
+
         sym = next(iter(t[0])).sym
 
         idx = states[t[0]]
@@ -99,6 +173,13 @@ def to_dfa(table):
 
     table = Table(table.start, cells, table.eval)
     return table
+
+
+def _sorted_edge_iter(g, src):
+    edges = g.edges(src, data=True)
+    edges = ((attrs['label'], dsts) for _, dsts, attrs in edges)
+    for e in sorted(edges):
+        yield e[1]
 
 
 def _create_eps_closure_func(table):

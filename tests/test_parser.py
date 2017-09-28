@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
 from silverchain.errors import *
-from silverchain.translator import _parse
+from silverchain.parser import parse
 
 
 def test_parse_1():
@@ -14,7 +14,7 @@ def test_parse_1():
     text@java : "String" ;
     EVAL@java = "Eval.evaluate(context);" ;
     """
-    _parse(text, 'java')
+    parse(text, 'java')
 
 
 def test_parse_2():
@@ -28,7 +28,7 @@ def test_parse_2():
     F -> "f" {3,4} ;
     F -> "f" {6,7} ;
     """
-    _parse(text, 'java')
+    parse(text, 'java')
 
 
 def test_parse_err_1():
@@ -36,7 +36,7 @@ def test_parse_err_1():
     START = A ;
     A -> "a" {1,0} ;
     """
-    pytest.raises(InvalidQuantifier, _parse, text, 'java')
+    pytest.raises(InvalidQuantifier, parse, text, 'java')
 
 
 def test_parse_err_2():
@@ -44,7 +44,7 @@ def test_parse_err_2():
     A -> "a" ;
     B -> "b" ;
     """
-    pytest.raises(NoStartSymbol, _parse, text, 'java')
+    pytest.raises(NoStartSymbol, parse, text, 'java')
 
 
 def test_parse_err_3():
@@ -54,7 +54,7 @@ def test_parse_err_3():
     A -> "a" ;
     B -> "b" ;
     """
-    pytest.raises(MultipleStartSymbol, _parse, text, 'java')
+    pytest.raises(MultipleStartSymbol, parse, text, 'java')
 
 
 def test_parse_err_4():
@@ -64,7 +64,7 @@ def test_parse_err_4():
     B : "int" ;
     B : "String" ;
     """
-    pytest.raises(MultipleTypeDefinition, _parse, text, 'java')
+    pytest.raises(MultipleTypeDefinition, parse, text, 'java')
 
 
 def test_parse_err_5():
@@ -74,4 +74,40 @@ def test_parse_err_5():
     EVAL = "Eval1.evaluate();" ;
     EVAL@java = "Eval2.evaluate();" ;
     """
-    pytest.raises(MultipleEvalCode, _parse, text, 'java')
+    pytest.raises(MultipleEvalCode, parse, text, 'java')
+
+
+def test_parse_err_6():
+    text = """
+    START = A ;
+    A : "String" ;
+    """
+    pytest.raises(InvalidStartSymbol, parse, text, 'java')
+
+
+def test_parse_err_7():
+    text = """
+    START = A ;
+    A -> "x" "y" ;
+    A : "String" ;
+    """
+    pytest.raises(RuleConflict, parse, text, 'java')
+
+
+def test_parse_err_8():
+    text = """
+    START = A ;
+    A -> "x" B ;
+    """
+    pytest.raises(UndefinedSymbol, parse, text, 'java')
+
+
+def test_parse_err_9():
+    text = """
+    START = A ;
+    A -> "x" "y" ;
+    """
+    grammar = parse(text, 'java')
+    expr = next(iter(grammar.prods.values()))
+    expr._tokens.pop()
+    pytest.raises(InvalidExpression, grammar.validate)
