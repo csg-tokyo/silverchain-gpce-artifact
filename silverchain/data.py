@@ -79,8 +79,8 @@ class Cell(object):
                 self._dst == other.dst)
 
     def __lt__(self, other):
-        seq1 = self._src, self._dst, self._sym
-        seq2 = other._src, other._dst, other._sym
+        seq1 = self._src, self._sym, self._dst
+        seq2 = other._src, other._sym, other._dst
         return seq1 < seq2
 
 
