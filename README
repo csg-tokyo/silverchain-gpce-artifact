@@ -2,6 +2,12 @@
 
 [PAPER@GPCE2017](https://dl.acm.org/citation.cfm?doid=3136040.3136041)
 
+## Installation
+
+```sh
+pip3 install silverchain
+```
+
 ## Usage Example
 
 ```sh
